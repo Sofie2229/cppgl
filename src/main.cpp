@@ -4,13 +4,13 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include <iostream>
 #include <string>
 #include <vector>
 
-#include "utils.hpp"
+#include "utils/utils.hpp"
 
 const std::string vssrc = R"(
 #version 460 core
@@ -52,12 +52,9 @@ int main() {
 	glm::mat4 projMat = glm::perspective(glm::radians(90.0f), width / height, 0.1f, 1000.0f);
 	glm::mat4 viewMat = glm::lookAt(glm::vec3{1,-2,1}, {0,0,0}, {0,0,1});
 	glm::mat4 modelMat = glm::mat4{1};
-	auto projMatLoc = glGetUniformLocation(program, "projMat");
-	auto viewMatLoc = glGetUniformLocation(program, "viewMat");
-	auto modelMatLoc = glGetUniformLocation(program, "modelMat");
-	glUniformMatrix4fv(projMatLoc, 1, false, glm::value_ptr(projMat));
-	glUniformMatrix4fv(viewMatLoc, 1, false, glm::value_ptr(viewMat));
-	glUniformMatrix4fv(modelMatLoc, 1, false, glm::value_ptr(modelMat));
+	Uniform uprojMat{program, "projMat"};
+	Uniform uviewMat{program, "viewMat"};
+	Uniform umodelMat{program, "modelMat"};
 
 	VAO vao;
 	VBO vbo;
@@ -69,10 +66,34 @@ int main() {
 	vbo.data(buff);
 	vao.attrib(vbo, 0, 3);
 	
+	Camera camera {{1,-2,1}};
+	camera.angles(glm::radians(glm::vec3{30, -20, 0}));
+	
+	Clock clock;
 	while (!glfwWindowShouldClose(window)) {
+		float dt = clock.dt();
 		glfwPollEvents();
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		uprojMat.setMat4(projMat);
+		uviewMat.setMat4(camera.viewMat());
+		float camspeed = dt * 3;
+		if (glfwGetKey(window, GLFW_KEY_UP)) camera.pitch(-camspeed);
+		if (glfwGetKey(window, GLFW_KEY_DOWN)) camera.pitch(camspeed);
+		if (glfwGetKey(window, GLFW_KEY_LEFT)) camera.yaw(-camspeed);
+		if (glfwGetKey(window, GLFW_KEY_RIGHT)) camera.yaw(camspeed);
+		if (glfwGetKey(window, GLFW_KEY_Q)) camera.roll(camspeed);
+		if (glfwGetKey(window, GLFW_KEY_E)) camera.roll(-camspeed);
+		if (glfwGetKey(window, GLFW_KEY_SPACE)) camera.pos += camera.up(true) * dt;
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)) camera.pos += camera.down(true) * dt;
+		if (glfwGetKey(window, GLFW_KEY_W)) camera.pos += camera.forward(true) * dt;
+		if (glfwGetKey(window, GLFW_KEY_S)) camera.pos += camera.backward(true) * dt;
+		if (glfwGetKey(window, GLFW_KEY_A)) camera.pos += camera.left(true) * dt;
+		if (glfwGetKey(window, GLFW_KEY_D)) camera.pos += camera.right(true) * dt;
+		if (glfwGetKey(window, GLFW_KEY_R)) {
+			camera.pos = {1, -2, 1};
+			camera.angles(glm::radians(glm::vec3(30, -20, 0)));
+		}
 		
 		vao.bind();
 		glDrawArrays(GL_TRIANGLES, 0, vbo.size);
