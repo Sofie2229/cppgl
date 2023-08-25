@@ -26,6 +26,9 @@ target_link_libraries("${PROJECT_NAME}" "glfw" "${GLFW_LIBRARIES}")
 
 add_subdirectory("glm")
 target_link_libraries("${PROJECT_NAME}" "glm::glm" "${GLM_LIBRARIES}")
+if(WIN32) 
+add_definitions("-D_CRT_SECURE_NO_WARNINGS")
+endif()
 
 add_subdirectory("glad")
 target_link_libraries("${PROJECT_NAME}" "glad")
